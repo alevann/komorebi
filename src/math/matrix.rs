@@ -4,18 +4,21 @@ use float_cmp::{ ApproxEq, F32Margin };
 use super::vector::Vec3;
 use super::angle::Angle;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Matrix<T, const C: usize, const R: usize> {
-    data: [[T; C]; R]
+    pub data: [[T; C]; R]
 }
 pub type Mat4 = Matrix<f32, 4, 4>;
 
+// TODO: unsure if scale_matrix and trans_matrix 
+//  should be here or in transform
+
 impl Mat4 {
-    fn new() -> Self { 
+    pub fn new() -> Self { 
         Self { data: [[0.0; 4]; 4] }
     }
 
-    fn model_matrix() -> Self {
+    pub fn model_matrix() -> Self {
         Self {
             data: [
                 [1.0, 0.0, 0.0, 0.0],
@@ -26,12 +29,35 @@ impl Mat4 {
         }
     }
 
+    pub fn from_scale_and_trans(s: &Vec3, t: &Vec3) -> Self {
+        Self {
+            data: [
+                [s[0], 0.0 , 0.0 , 0.0],
+                [0.0 , s[1], 0.0 , 0.0],
+                [0.0 , 0.0 , s[2], 0.0],
+                [t[0], t[1], t[2], 1.0]
+            ]
+        }
+    }
+
+    pub fn scale_matrix(matrix: &mut Self, scale: Vec3) {
+        matrix[0][0] = scale[0];
+        matrix[1][1] = scale[1];
+        matrix[2][2] = scale[2];
+    }
+
+    pub fn trans_matrix(matrix: &mut Self, trans: Vec3) {
+        matrix[3][0] = trans[0];
+        matrix[3][1] = trans[1];
+        matrix[3][2] = trans[2];
+    }
+
     /// # Rotate Slow
     /// 
     /// Returns a new matrix on which a rotation has been applied.
     /// Rotation indicates the direction in which to apply the rotation
     /// while angle determines the amount of rotation to apply.
-    fn rsw(self, angle: Angle, rotation: Vec3) -> Self {
+    pub fn rsw(self, angle: Angle, rotation: &Vec3) -> Self {
         let a = angle.as_rad();
         let c = a.cos();
         let s = a.sin();

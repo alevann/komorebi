@@ -6,6 +6,12 @@ extern crate glium;
 mod teapot;
 use teapot::*;
 mod math;
+use math::*;
+use vector::*;
+use matrix::*;
+use angle::*;
+mod transform;
+use transform::*;
 
 use glium::{
     glutin::{
@@ -177,8 +183,9 @@ struct Application {
     background_color: [f32; 4],
     model: Model,
     camera: [[f32; 3]; 3],
-    orientation: [f32; 3],
-    angle: f32,
+    rotation: Vec3,
+    position: Vec3,
+    scale: Vec3
 }
 
 impl Application {
@@ -193,50 +200,80 @@ impl Application {
                 }
                 imgui.separator();
 
-                imgui.text(im_str!("Model matrix"));
-                let width = imgui.push_item_width(imgui.current_column_width() / 5.0);
-                for r in 0..4 {
-                    for c in 0..4 {
-                        let mut value = self.model.matrix[r][c];
-                        let label = im_str!("##model-matrix-{}x{}", r, c);
-                        let text = im_str!("{}x{}: %.3f", r, c);
-                        let inf = Drag::<f32>::new(&label).display_format(&text).speed(0.1);
-                        if inf.build(imgui, &mut value) {
-                            self.model.matrix[r][c] = value;
-                        }
-                        imgui.same_line_with_spacing(0.0, -1.0);
-                    }
-                    imgui.new_line();
+                let width = imgui.push_item_width(imgui.current_column_width() / 3.0);
+                imgui.text("Position");
+                let pos = Drag::<f32>::new(im_str!("##pos-x"))
+                        .display_format(im_str!("X: %.3f"))
+                        .speed(0.1);
+                if pos.build(imgui, &mut self.position[0]) {
+                    self.model.transform.set_position(self.position)
+                }
+                imgui.same_line(0.0);
+                let pos = Drag::<f32>::new(im_str!("##pos-y"))
+                        .display_format(im_str!("Y: %.3f"))
+                        .speed(0.1);
+                if pos.build(imgui, &mut self.position[1]) {
+                    self.model.transform.set_position(self.position)
+                }
+                imgui.same_line(0.0);
+                let pos = Drag::<f32>::new(im_str!("##pos-z"))
+                        .display_format(im_str!("Z: %.3f"))
+                        .speed(0.1);
+                if pos.build(imgui, &mut self.position[2]) {
+                    self.model.transform.set_position(self.position)
                 }
                 width.pop(imgui);
 
-                imgui.text(im_str!("Rotation"));
-                let width = imgui.push_item_width(imgui.current_column_width() / 4.5);
-                Drag::<f32>::new(im_str!("##orx"))
-                    .display_format(im_str!("X: %.3f"))
-                    .speed(0.05)
-                    .build(imgui, &mut self.orientation[0]);
+
+                let width = imgui.push_item_width(imgui.current_column_width() / 3.0);
+                imgui.text("Orientation");
+                let pos = Drag::<f32>::new(im_str!("##ori-x"))
+                        .display_format(im_str!("X: %.3f"))
+                        .speed(0.1);
+                if pos.build(imgui, &mut self.rotation[0]) {
+                    self.model.transform.set_rotation(self.rotation)
+                }
                 imgui.same_line(0.0);
-                Drag::<f32>::new(im_str!("##ory"))
-                    .display_format(im_str!("Y: %.3f"))
-                    .speed(0.05)
-                    .build(imgui, &mut self.orientation[1]);
+                let pos = Drag::<f32>::new(im_str!("##ori-y"))
+                        .display_format(im_str!("Y: %.3f"))
+                        .speed(0.1);
+                if pos.build(imgui, &mut self.rotation[1]) {
+                    self.model.transform.set_rotation(self.rotation)
+                }
                 imgui.same_line(0.0);
-                Drag::<f32>::new(im_str!("##orz"))
-                    .display_format(im_str!("Z: %.3f"))
-                    .speed(0.05)
-                    .build(imgui, &mut self.orientation[2]);
-                imgui.same_line(0.0);
-                Drag::<f32>::new(im_str!("##orw"))
-                    .display_format(im_str!("Angle(Deg): %.3f"))
-                    .speed(0.05)
-                    .build(imgui, &mut self.angle);
-                if imgui.small_button(im_str!("Apply")) {
-                    self.model.matrix =
-                        rotate_slow(&mut self.model.matrix, self.angle.to_radians(), self.orientation);
-                    println!("Rotated!")
+                let pos = Drag::<f32>::new(im_str!("##ori-z"))
+                        .display_format(im_str!("Z: %.3f"))
+                        .speed(0.1);
+                if pos.build(imgui, &mut self.rotation[2]) {
+                    self.model.transform.set_rotation(self.rotation)
                 }
                 width.pop(imgui);
+
+
+                let width = imgui.push_item_width(imgui.current_column_width() / 3.0);
+                imgui.text("Scale");
+                let pos = Drag::<f32>::new(im_str!("##scl-x"))
+                        .display_format(im_str!("X: %.3f"))
+                        .speed(0.1);
+                if pos.build(imgui, &mut self.scale[0]) {
+                    self.model.transform.set_scale(self.scale)
+                }
+                imgui.same_line(0.0);
+                let pos = Drag::<f32>::new(im_str!("##scl-y"))
+                        .display_format(im_str!("Y: %.3f"))
+                        .speed(0.1);
+                if pos.build(imgui, &mut self.scale[1]) {
+                    self.model.transform.set_scale(self.scale)
+                }
+                imgui.same_line(0.0);
+                let pos = Drag::<f32>::new(im_str!("##scl-z"))
+                        .display_format(im_str!("Z: %.3f"))
+                        .speed(0.1);
+                if pos.build(imgui, &mut self.scale[2]) {
+                    self.model.transform.set_scale(self.scale)
+                }
+                width.pop(imgui);
+
 
                 imgui.text(im_str!("Camera matrix"));
                 let width = imgui.push_item_width(imgui.current_column_width() / 4.0);
@@ -313,7 +350,7 @@ impl Application {
             (self.model.vertex_buffer.as_ref().unwrap(), self.model.normal_buffer.as_ref().unwrap()),
             self.model.index_buffer.as_ref().unwrap(),
             &program,
-            &uniform! { model: self.model.matrix, view: view, perspective: projection, u_light: light },
+            &uniform! { model: self.model.transform.matrix.data, view: view, perspective: projection, u_light: light },
             &params
         ).unwrap();
     }
@@ -357,62 +394,6 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
         [p[0], p[1], p[2], 1.0],
     ]
 }
-fn rotate_slow(matrix: &mut [[f32; 4]; 4], angle: f32, rotation: [f32; 3]) -> [[f32; 4]; 4] {
-    let a = angle;
-    let c = a.cos();
-    let s = a.sin();
-
-    let axis = rotation[0] * rotation[0] + rotation[1] * rotation[1] + rotation[2] * rotation[2];
-    let axis = axis.sqrt();
-    let axis = [rotation[0] / axis, rotation[1] / axis, rotation[2] / axis];
-
-    let mut m: [[f32; 4]; 4] = [
-        [0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0],
-    ];
-
-    m[0][0] = c + (1.0 - c) * axis[0] * axis[0];
-    m[0][1] = (1.0 - c) * axis[0] * axis[1] + s * axis[2];
-    m[0][2] = (1.0 - c) * axis[0] * axis[2] - s * axis[1];
-    m[0][3] = 0.0;
-
-    m[1][0] = (1.0 - c) * axis[1] * axis[0] - s * axis[2];
-    m[1][1] = c + (1.0 - c) * axis[1] * axis[1];
-    m[1][2] = (1.0 - c) * axis[1] * axis[2] + s * axis[0];
-    m[1][3] = 0.0;
-
-    m[2][0] = (1.0 - c) * axis[2] * axis[0] + s * axis[1];
-    m[2][1] = (1.0 - c) * axis[2] * axis[1] - s * axis[0];
-    m[2][2] = c + (1.0 - c) * axis[2] * axis[2];
-    m[2][3] = 0.0;
-
-    m[3][0] = 0.0;
-    m[3][1] = 0.0;
-    m[3][2] = 0.0;
-    m[3][3] = 1.0;
-
-    mult_m4(m, *matrix)
-}
-fn mult_m4(a: [[f32; 4]; 4], b: [[f32; 4]; 4]) -> [[f32; 4]; 4] {
-    let mut out = [
-        [0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0],
-    ];
-
-    for i in 0..4 {
-        for j in 0..4 {
-            for k in 0..4 {
-                out[i][j] += a[i][k] * b[k][j];
-            }
-        }
-    }
-
-    out
-}
 
 impl Default for Application {
     fn default() -> Self {
@@ -420,8 +401,9 @@ impl Default for Application {
             background_color: [0.0, 0.0, 0.0, 1.0],
             model: Model::new(),
             camera: [[2.0, 1.6, 1.0], [-2.0, -1.0, 1.0], [0.0, 1.0, 0.0]],
-            orientation: [0.0, 0.0, 0.0],
-            angle: 0.0,
+            rotation: Vec3::new(),
+            position: Vec3::new(),
+            scale: vec3!(1.0, 1.0, 1.0)
         }
     }
 }
@@ -441,7 +423,7 @@ implement_vertex!(Normal, normal);*/
 struct Model {
     vertex: Vec<Vertex>,
     normal: Vec<Normal>,
-    matrix: [[f32; 4]; 4],
+    transform: Transform,
     vertex_buffer: Option<VertexBuffer<Vertex>>,
     normal_buffer: Option<VertexBuffer<Normal>>,
     index_buffer: Option<IndexBuffer<u16>>,
@@ -449,12 +431,6 @@ struct Model {
 
 impl Model {
     fn new() -> Model {
-        let matrix = [
-            [0.01, 0.0, 0.0, 0.0],
-            [0.0, 0.01, 0.0, 0.0],
-            [0.0, 0.0, 0.01, 0.0],
-            [0.0, 0.0, 2.0, 1.0f32],
-        ];
         let vertices = teapot::VERTICES.to_vec();
         let normal = teapot::NORMALS.to_vec();
 
@@ -498,7 +474,7 @@ impl Model {
         println!("Model vertex count: {}\nModel normal count: {}", vertices.len(), normal.len());*/
         Model {
             vertex: vertices,
-            matrix,
+            transform: Transform::new(),
             vertex_buffer: None,
             normal,
             normal_buffer: None,
@@ -508,13 +484,12 @@ impl Model {
 }
 
 fn main() {
-    /*let system = build_system(
+    let system = build_system(
         "komorebi",
         LogicalSize {
             width: 1024.0,
             height: 768.0,
         },
     );
-    system.main_loop(&mut Default::default());*/
-    math::bench_math();
+    system.main_loop(&mut Default::default());
 }

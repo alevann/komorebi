@@ -1,22 +1,22 @@
-use std::ops::{Index};
-use std::cmp::{PartialEq};
-use std::fmt::{Display,Formatter,Result};
+use std::ops::{ Index, IndexMut };
+use std::cmp::PartialEq;
+use std::fmt::{ Display, Formatter, Result };
 use rand::Rng;
-use float_cmp::{ApproxEq,F32Margin};
+use float_cmp::{ ApproxEq, F32Margin };
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Vector<T, const S: usize> {
-    data: [T; S],
+    pub data: [T; S],
 }
 pub type Vec3 = Vector<f32, 3>;
+
+pub const RG: Vec3 = Vec3 { data: [1.0, 0.0, 0.0] };
+pub const UP: Vec3 = Vec3 { data: [0.0, 1.0, 0.0] };
+pub const FW: Vec3 = Vec3 { data: [0.0, 0.0, 1.0] };
 
 impl Vec3 {
     pub fn new() -> Self {
         Vector { data: [0.0; 3] }
-    }
-
-    pub fn up() -> Self {
-        Vector { data: [ 0.0, 1.0, 0.0 ] }
     }
 
     pub fn nrm(&self) -> Self {
@@ -49,6 +49,12 @@ impl Index<usize> for Vec3 {
     
     fn index(&self, i: usize) -> &Self::Output {
         &self.data[i]
+    }
+}
+
+impl IndexMut<usize> for Vec3 {
+    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+        &mut self.data[i]
     }
 }
 
