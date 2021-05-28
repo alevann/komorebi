@@ -6,9 +6,9 @@ use crate::vec3;
 pub struct Transform {
     pub matrix: Mat4,
     // TODO: rotation should be a quaternion
-    rotation: Vec3,
-    position: Vec3,
-    scale: Vec3
+    pub rotation: Vec3,
+    pub position: Vec3,
+    pub scale: Vec3
 }
 
 impl Transform {

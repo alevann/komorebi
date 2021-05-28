@@ -183,9 +183,7 @@ struct Application {
     background_color: [f32; 4],
     model: Model,
     camera: [[f32; 3]; 3],
-    rotation: Vec3,
-    position: Vec3,
-    scale: Vec3
+    state: Option<State>
 }
 
 impl Application {
@@ -198,82 +196,11 @@ impl Application {
                 if ce.build(&imgui) {
                     self.background_color = color;
                 }
+
+                
+                imgui_render_transform(imgui, "1", "Teapot Transform", &mut self.model.transform, self.state);
+
                 imgui.separator();
-
-                let width = imgui.push_item_width(imgui.current_column_width() / 3.0);
-                imgui.text("Position");
-                let pos = Drag::<f32>::new(im_str!("##pos-x"))
-                        .display_format(im_str!("X: %.3f"))
-                        .speed(0.1);
-                if pos.build(imgui, &mut self.position[0]) {
-                    self.model.transform.set_position(self.position)
-                }
-                imgui.same_line(0.0);
-                let pos = Drag::<f32>::new(im_str!("##pos-y"))
-                        .display_format(im_str!("Y: %.3f"))
-                        .speed(0.1);
-                if pos.build(imgui, &mut self.position[1]) {
-                    self.model.transform.set_position(self.position)
-                }
-                imgui.same_line(0.0);
-                let pos = Drag::<f32>::new(im_str!("##pos-z"))
-                        .display_format(im_str!("Z: %.3f"))
-                        .speed(0.1);
-                if pos.build(imgui, &mut self.position[2]) {
-                    self.model.transform.set_position(self.position)
-                }
-                width.pop(imgui);
-
-
-                let width = imgui.push_item_width(imgui.current_column_width() / 3.0);
-                imgui.text("Orientation");
-                let pos = Drag::<f32>::new(im_str!("##ori-x"))
-                        .display_format(im_str!("X: %.3f"))
-                        .speed(0.1);
-                if pos.build(imgui, &mut self.rotation[0]) {
-                    self.model.transform.set_rotation(self.rotation)
-                }
-                imgui.same_line(0.0);
-                let pos = Drag::<f32>::new(im_str!("##ori-y"))
-                        .display_format(im_str!("Y: %.3f"))
-                        .speed(0.1);
-                if pos.build(imgui, &mut self.rotation[1]) {
-                    self.model.transform.set_rotation(self.rotation)
-                }
-                imgui.same_line(0.0);
-                let pos = Drag::<f32>::new(im_str!("##ori-z"))
-                        .display_format(im_str!("Z: %.3f"))
-                        .speed(0.1);
-                if pos.build(imgui, &mut self.rotation[2]) {
-                    self.model.transform.set_rotation(self.rotation)
-                }
-                width.pop(imgui);
-
-
-                let width = imgui.push_item_width(imgui.current_column_width() / 3.0);
-                imgui.text("Scale");
-                let pos = Drag::<f32>::new(im_str!("##scl-x"))
-                        .display_format(im_str!("X: %.3f"))
-                        .speed(0.1);
-                if pos.build(imgui, &mut self.scale[0]) {
-                    self.model.transform.set_scale(self.scale)
-                }
-                imgui.same_line(0.0);
-                let pos = Drag::<f32>::new(im_str!("##scl-y"))
-                        .display_format(im_str!("Y: %.3f"))
-                        .speed(0.1);
-                if pos.build(imgui, &mut self.scale[1]) {
-                    self.model.transform.set_scale(self.scale)
-                }
-                imgui.same_line(0.0);
-                let pos = Drag::<f32>::new(im_str!("##scl-z"))
-                        .display_format(im_str!("Z: %.3f"))
-                        .speed(0.1);
-                if pos.build(imgui, &mut self.scale[2]) {
-                    self.model.transform.set_scale(self.scale)
-                }
-                width.pop(imgui);
-
 
                 imgui.text(im_str!("Camera matrix"));
                 let width = imgui.push_item_width(imgui.current_column_width() / 4.0);
@@ -395,15 +322,151 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
     ]
 }
 
+struct State {
+    position: Vec3,
+    rotation: Vec3,
+    scale: Vec3
+}
+fn imgui_render_transform(
+    imgui: &mut Ui,
+    id: &str,
+    title: &str,
+    transform: &mut Transform,
+    state: Option<State>
+) -> State {
+    let mut state = match state {
+        Some(s) => s,
+        None => State { position: transform.position, rotation: transform.rotation, scale: transform.scale }
+    };
+
+    imgui.separator();
+    imgui.text(title);
+
+    transform_position(imgui, id, &mut state, &mut transform);
+    transform_rotation(imgui, id, &mut state, &mut transform);
+    transform_scale(imgui, id, &mut state, &mut transform);
+
+    state
+}
+fn transform_position(imgui: &mut Ui, id: &str, state: &mut State, transform: &mut Transform) {
+    let width = imgui.push_item_width(imgui.current_column_width() / 3.0);
+    imgui.text("Position");
+    let mut pos = 0.0;
+    let lbl = im_str!("##pos-x-{}", id);
+    let fmt = im_str!("X: %.6f");
+    let drag_pos = Drag::<f32>::new(&lbl)
+            .display_format(&fmt)
+            .speed(0.01);
+    if drag_pos.build(imgui, &mut pos) {
+        state.position[0] = pos;
+        transform.set_position(state.position);
+    }
+
+    let mut pos = 0.0;
+    let lbl = im_str!("##pos-y-{}", id);
+    let fmt = im_str!("Y: %.6f");
+    let drag_pos = Drag::<f32>::new(&lbl)
+            .display_format(&fmt)
+            .speed(0.01);
+    if drag_pos.build(imgui, &mut pos) {
+        state.position[1] = pos;
+        transform.set_position(state.position);
+    }
+
+    let mut pos = 0.0;
+    let lbl = im_str!("##pos-z-{}", id);
+    let fmt = im_str!("Z: %.6f");
+    let drag_pos = Drag::<f32>::new(&lbl)
+            .display_format(&fmt)
+            .speed(0.01);
+    if drag_pos.build(imgui, &mut pos) {
+        state.position[2] = pos;
+        transform.set_position(state.position);
+    }
+    width.pop(imgui)
+}
+fn transform_rotation(imgui: &mut Ui, id: &str, state: &mut State, transform: &mut Transform) {
+    let width = imgui.push_item_width(imgui.current_column_width() / 3.0);
+    imgui.text("Rotation");
+    let mut rot = 0.0;
+    let lbl = im_str!("##rot-x-{}", id);
+    let fmt = im_str!("X: %.6f");
+    let drag_rot = Drag::<f32>::new(&lbl)
+            .display_format(&fmt)
+            .speed(0.01);
+    if drag_rot.build(imgui, &mut rot) {
+        state.rotation[0] = rot;
+        transform.set_position(state.rotation);
+    }
+
+    let mut rot = 0.0;
+    let lbl = im_str!("##rot-y-{}", id);
+    let fmt = im_str!("Y: %.6f");
+    let drag_rot = Drag::<f32>::new(&lbl)
+            .display_format(&fmt)
+            .speed(0.01);
+    if drag_rot.build(imgui, &mut rot) {
+        state.rotation[1] = rot;
+        transform.set_position(state.rotation);
+    }
+
+    let mut rot = 0.0;
+    let lbl = im_str!("##rot-z-{}", id);
+    let fmt = im_str!("Z: %.6f");
+    let drag_rot = Drag::<f32>::new(&lbl)
+            .display_format(&fmt)
+            .speed(0.01);
+    if drag_rot.build(imgui, &mut rot) {
+        state.rotation[2] = rot;
+        transform.set_position(state.rotation);
+    }
+    width.pop(imgui)
+}
+fn transform_scale(imgui: &mut Ui, id: &str, state: &mut State, transform: &mut Transform) {
+    let width = imgui.push_item_width(imgui.current_column_width() / 3.0);
+    imgui.text("Scale");
+    let mut scl = 0.0;
+    let lbl = im_str!("##scl-x-{}", id);
+    let fmt = im_str!("X: %.6f");
+    let drag_scl = Drag::<f32>::new(&lbl)
+            .display_format(&fmt)
+            .speed(0.01);
+    if drag_scl.build(imgui, &mut scl) {
+        state.scale[0] = scl;
+        transform.set_position(state.scale);
+    }
+
+    let mut scl = 0.0;
+    let lbl = im_str!("##scl-y-{}", id);
+    let fmt = im_str!("Y: %.6f");
+    let drag_scl = Drag::<f32>::new(&lbl)
+            .display_format(&fmt)
+            .speed(0.01);
+    if drag_scl.build(imgui, &mut scl) {
+        state.scale[1] = scl;
+        transform.set_position(state.scale);
+    }
+
+    let mut scl = 0.0;
+    let lbl = im_str!("##scl-z-{}", id);
+    let fmt = im_str!("Z: %.6f");
+    let drag_scl = Drag::<f32>::new(&lbl)
+            .display_format(&fmt)
+            .speed(0.01);
+    if drag_scl.build(imgui, &mut scl) {
+        state.scale[2] = scl;
+        transform.set_scale(state.scale);
+    }
+    width.pop(imgui)
+}
+
 impl Default for Application {
     fn default() -> Self {
         Application {
             background_color: [0.0, 0.0, 0.0, 1.0],
             model: Model::new(),
             camera: [[2.0, 1.6, 1.0], [-2.0, -1.0, 1.0], [0.0, 1.0, 0.0]],
-            rotation: Vec3::new(),
-            position: Vec3::new(),
-            scale: vec3!(1.0, 1.0, 1.0)
+            state: None
         }
     }
 }
