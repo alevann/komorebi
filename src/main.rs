@@ -5,7 +5,7 @@ extern crate glium;
 
 mod teapot;
 use teapot::*;
-mod vector;
+mod math;
 
 use glium::{
     glutin::{
@@ -228,12 +228,12 @@ impl Application {
                     .build(imgui, &mut self.orientation[2]);
                 imgui.same_line(0.0);
                 Drag::<f32>::new(im_str!("##orw"))
-                    .display_format(im_str!("Angle: %.3f"))
+                    .display_format(im_str!("Angle(Deg): %.3f"))
                     .speed(0.05)
                     .build(imgui, &mut self.angle);
                 if imgui.small_button(im_str!("Apply")) {
                     self.model.matrix =
-                        rotate_slow(&mut self.model.matrix, self.angle, self.orientation);
+                        rotate_slow(&mut self.model.matrix, self.angle.to_radians(), self.orientation);
                     println!("Rotated!")
                 }
                 width.pop(imgui);
@@ -508,12 +508,13 @@ impl Model {
 }
 
 fn main() {
-    let system = build_system(
+    /*let system = build_system(
         "komorebi",
         LogicalSize {
             width: 1024.0,
             height: 768.0,
         },
     );
-    system.main_loop(&mut Default::default());
+    system.main_loop(&mut Default::default());*/
+    math::bench_math();
 }
